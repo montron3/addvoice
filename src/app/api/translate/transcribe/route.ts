@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Audio file is required" }, { status: 400 });
     }
 
-    let apiKey = userApiKey;
+    let apiKey: string | null = userApiKey;
 
     // If no user key, use platform key (requires auth + credits)
     if (!apiKey) {
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       if (user.credits <= 0) {
         return NextResponse.json({ error: "Insufficient credits. Please purchase more minutes." }, { status: 402 });
       }
-      apiKey = process.env.OPENAI_API_KEY;
+      apiKey = process.env.OPENAI_API_KEY ?? null;
       if (!apiKey) {
         return NextResponse.json({ error: "Platform API key not configured" }, { status: 500 });
       }

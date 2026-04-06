@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { stripe, CREDIT_PACKAGES, calculatePrice } from "@/lib/stripe";
+import { getStripe, CREDIT_PACKAGES, calculatePrice } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     });
 
     const baseUrl = process.env.MAGIC_LINK_BASE_URL || "http://localhost:3000";
+    const stripe = getStripe();
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],

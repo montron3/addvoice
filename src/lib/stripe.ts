@@ -1,12 +1,25 @@
 import Stripe from "stripe";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  console.warn("STRIPE_SECRET_KEY not set - Stripe features will not work");
+function getStripeClient(): Stripe | null {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    console.warn("STRIPE_SECRET_KEY not set - Stripe features will not work");
+    return null;
+  }
+  return new Stripe(key);
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2025-03-31.basil",
-});
+let _stripe: Stripe | null | undefined;
+
+export function getStripe(): Stripe {
+  if (_stripe === undefined) {
+    _stripe = getStripeClient();
+  }
+  if (!_stripe) {
+    throw new Error("Stripe is not configured. Set STRIPE_SECRET_KEY environment variable.");
+  }
+  return _stripe;
+}
 
 export const PRICE_PER_MINUTE_CENTS = parseInt(
   process.env.PRICE_PER_MINUTE_CENTS || "99",

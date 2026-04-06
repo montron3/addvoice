@@ -19,7 +19,7 @@ function VerifyContent() {
 
     // The API route handles verification and redirects on success
     // This page is shown if something goes wrong
-    fetch(`/api/auth/verify?token=${token}`, { redirect: "manual" })
+    fetch(`/api/auth/verify?token=${encodeURIComponent(token)}`, { redirect: "manual" })
       .then((res) => {
         if (res.type === "opaqueredirect" || res.status === 302 || res.redirected) {
           setStatus("success");

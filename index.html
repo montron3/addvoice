@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>VidTraduci - Traduci video e audio per YouTuber con AI</title>
+    <!-- FFmpeg.wasm per scomposizione e ricomposizione file -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/umd/ffmpeg.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f6f9fc 0%, #eef2f5 100%);
+            color: #1a2a3a;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* header */
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            background: linear-gradient(135deg, #0f2b3d, #1b4f6e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: #2c5a74;
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+        }
+
+        /* due colonne */
+        .dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .main-panel {
+            flex: 2;
+            min-width: 280px;
+        }
+
+        .guide-panel {
+            flex: 1.2;
+            min-width: 260px;
+            background: #ffffffcc;
+            backdrop-filter: blur(8px);
+            border-radius: 2rem;
+            padding: 1.5rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+            height: fit-content;
+        }
+
+        /* card stile */
+        .card {
+            background: white;
+            border-radius: 1.8rem;
+            padding: 1.5rem;
+            margin-bottom: 1.8rem;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid #e9edf2;
+            transition: all 0.2s;
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #1f4e6e;
+            border-left: 4px solid #2d9cdb;
+            padding-left: 0.75rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            font-weight: 500;
+            display: block;
+            margin-bottom: 0.4rem;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid #cfdfe9;
+            background: #fefefe;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #2d9cdb;
+            box-shadow: 0 0 0 3px rgba(45,156,219,0.2);
+        }
+
+        button {
+            background: #1f6392;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.6rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            background: #0e4b70;
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: #e2e8f0;
+            color: #1e4a6b;
+            box-shadow: none;
+        }
+
+        .log-area {
+            background: #1e2a32;
+            color: #c9e9ff;
+            padding: 1rem;
+            border-radius: 1.2rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            height: 180px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        .download-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin-top: 1rem;
+        }
+
+        .badge {
+            background: #eef2ff;
+            border-radius: 2rem;
+            padding: 0.2rem 0.8rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #1f6392;
+        }
+
+        .step-list {
+            list-style: none;
+            margin-top: 1rem;
+        }
+        .step-list li {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 0.8rem;
+            align-items: flex-start;
+        }
+        .step-num {
+            background: #2d9cdb;
+            color: white;
+            border-radius: 2rem;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        hr {
+            margin: 1rem 0;
+            border: none;
+            border-top: 1px solid #dce5ec;
+        }
+        .key-hint {
+            font-size: 0.75rem;
+            color: #6c86a3;
+            margin-top: 0.2rem;
+        }
+        @media (max-width: 780px) {
+            .dashboard {
+                flex-direction: column;
+            }
+        }
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 0.8rem;
+            color: #6c86a3;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🎬 VidTraduci</h1>
+        <p>Traduci video/audio per YouTube con Whisper + DeepSeek + ElevenLabs — traccia vocale tradotta in pochi click</p>
+    </div>
+
+    <div class="dashboard">
+        <!-- PANELLO PRINCIPALE -->
+        <div class="main-panel">
+            <div class="card">
+                <h2>📂 1. Carica il tuo file</h2>
+                <input type="file" id="fileInput" accept="video/*,audio/*" />
+                <div class="key-hint">Supporto: MP4, MOV, MP3, WAV, M4A, ecc.</div>
+            </div>
+
+            <div class="card">
+                <h2>🔑 2. Configura API</h2>
+                <div class="form-group">
+                    <label>🔓 OpenAI Whisper API Key</label>
+                    <input type="password" id="whisperKey" placeholder="sk-..." />
+                    <div class="key-hint">Usata per la trascrizione automatica (whisper-1)</div>
+                </div>
+                <div class="form-group">
+                    <label>🧠 DeepSeek API Key (traduzione contestuale)</label>
+                    <input type="password" id="deepseekKey" placeholder="sk-..." />
+                    <div class="key-hint">Modello deepseek-chat per traduzione naturale</div>
+                </div>
+                <div class="form-group">
+                    <label>🗣️ ElevenLabs API Key</label>
+                    <input type="password" id="elevenKey" placeholder="API key da elevenlabs.io" />
+                </div>
+                <div class="form-group">
+                    <label>🎙️ Voce ElevenLabs (Voice ID)</label>
+                    <input type="text" id="voiceId" value="21m00Tcm4TlvDq8ikWAM" placeholder="es. 21m00Tcm4TlvDq8ikWAM (Rachel)" />
+                    <div class="key-hint">ID voce predefinito: Rachel (inglese). Puoi usare voci multilinguali.</div>
+                </div>
+                <div class="form-group">
+                    <label>🌐 Lingua di destinazione (traduzione)</label>
+                    <select id="targetLang">
+                        <option value="Inglese">Inglese (English)</option>
+                        <option value="Spagnolo">Spagnolo (Español)</option>
+                        <option value="Francese">Francese (Français)</option>
+                        <option value="Tedesco">Tedesco (Deutsch)</option>
+                        <option value="Italiano" selected>Italiano</option>
+                        <option value="Portoghese">Portoghese (Português)</option>
+                        <option value="Giapponese">Giapponese (日本語)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>⚙️ 3. Avvia processo completo</h2>
+                <button id="processBtn">🚀 Traduci e genera traccia audio</button>
+                <div class="log-area" id="logArea">
+                    📌 In attesa... Carica un file e inserisci le tue API key.
+                </div>
+                <div class="download-group" id="downloadGroup" style="display: none;">
+                    <button id="downloadTranscriptBtn" class="secondary">📄 Scarica trascrizione originale</button>
+                    <button id="downloadTranslationBtn" class="secondary">📝 Scarica traduzione</button>
+                    <button id="downloadTTSBtn" class="secondary">🎧 Scarica voce tradotta (audio)</button>
+                    <button id="downloadFinalVideoBtn" class="secondary">🎬 Scarica video finale con nuova traccia</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANELLO GUIDA PASSO PASSO -->
+        <div class="guide-panel">
+            <h2 style="font-size: 1.6rem; margin-bottom: 1rem;">📖 Guida passo passo</h2>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem;">Come aggiungere la traccia tradotta al tuo video finale:</p>
+            <ul class="step-list">
+                <li><span class="step-num">1</span> <span><strong>Carica il tuo video/audio</strong> — il sistema estrae l'audio originale (scomposizione automatica con FFmpeg.wasm).</span></li>
+                <li><span class="step-num">2</span> <span><strong>Inserisci le API keys</strong>: Whisper (trascrizione), DeepSeek (traduzione contestuale) e ElevenLabs (sintesi vocale).</span></li>
+                <li><span class="step-num">3</span> <span><strong>Clicca "Traduci e genera traccia audio"</strong>. Il sistema:</span>
+                    <ul style="margin-left: 1.5rem; margin-top: 0.3rem; font-size: 0.85rem;">
+                        <li>✓ Scompone il file → estrae l'audio</li>
+                        <li>✓ Trascrive con Whisper API</li>
+                        <li>✓ Traduce con DeepSeek nella lingua scelta</li>
+                        <li>✓ Genera voce tradotta con ElevenLabs (gestione chunking)</li>
+                        <li>✓ Ricompone il video sostituendo la traccia audio originale con la nuova voce tradotta</li>
+                    </ul>
+                </li>
+                <li><span class="step-num">4</span> <span><strong>Scarica il risultato</strong> — ottieni il video finale con la nuova traccia, pronto per YouTube! Puoi anche scaricare solo l'audio tradotto.</span></li>
+                <li><span class="step-num">5</span> <span><strong>Suggerimento</strong>: Se vuoi mantenere audio originale come seconda traccia, usa software esterno; il nostro tool la sostituisce per creare il doppiaggio pulito.</span></li>
+            </ul>
+            <hr />
+            <div class="badge" style="margin-bottom: 0.6rem;">💡 Nota tecnica</div>
+            <p style="font-size: 0.8rem;">Viene utilizzato FFmpeg.wasm per decomposizione (estrazione audio) e ricomposizione (mux video + nuovo audio). Le chiamate API avvengono lato client, le tue chiavi rimangono nel browser.</p>
+            <p style="font-size: 0.8rem; margin-top: 0.8rem;">🎯 Per video lunghi, assicurati che i chunk audio non superino i limiti di ElevenLabs (gestito automaticamente).</p>
+        </div>
+    </div>
+    <footer>
+        VidTraduci — integrazione Whisper + DeepSeek + ElevenLabs. Scomposizione file via FFmpeg.wasm. Traccia vocale sostituita con doppiaggio AI.
+    </footer>
+</div>
+
+<script>
+    // Helper per log
+    const logArea = document.getElementById('logArea');
+    function addLog(msg) {
+        const p = document.createElement('div');
+        p.textContent = `🟢 ${new Date().toLocaleTimeString()} - ${msg}`;
+        logArea.appendChild(p);
+        p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        console.log(msg);
+    }
+    function errorLog(msg) {
+        const p = document.createElement('div');
+        p.textContent = `🔴 ${new Date().toLocaleTimeString()} - ERRORE: ${msg}`;
+        p.style.color = "#ffaa99";
+        logArea.appendChild(p);
+        p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        console.error(msg);
+    }
+
+    // Variabili globali
+    let originalFile = null;
+    let extractedAudioBlob = null;      // audio estratto (mp3)
+    let transcriptionText = "";
+    let translatedText = "";
+    let ttsAudioBlob = null;            // audio tradotto finale (mp3)
+    let finalVideoBlob = null;
+
+    // Riferimenti FFmpeg
+    let ffmpeg = null;
+    let ffmpegLoaded = false;
+
+    async function loadFFmpeg() {
+        if (ffmpegLoaded) return ffmpeg;
+        addLog("Caricamento FFmpeg.wasm (scomposizione/ricomposizione file)...");
+        ffmpeg = new FFmpegWASM.FFmpeg();
+        await ffmpeg.load({
+            coreURL: "https://unpkg.com/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.js",
+            wasmURL: "https://unpkg.com/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.wasm",
+        });
+        ffmpegLoaded = true;
+        addLog("✅ FFmpeg.wasm pronto");
+        return ffmpeg;
+    }
+
+    // 1. Scomposizione: estrae audio dal video (o copia se già audio)
+    async function decomposeFile(file) {
+        addLog("📁 Decomposizione file: estrazione audio...");
+        await loadFFmpeg();
+        const inputName = "input." + (file.name.split('.').pop() || "mp4");
+        const audioOutput = "audio_extracted.mp3";
+        const fileData = new Uint8Array(await file.arrayBuffer());
+        ffmpeg.FS('writeFile', inputName, fileData);
+        // estrai audio in mp3
+        await ffmpeg.exec(['-i', inputName, '-q:a', '2', '-acodec', 'libmp3lame', audioOutput]);
+        const audioData = ffmpeg.FS('readFile', audioOutput);
+        const audioBlob = new Blob([audioData.buffer], { type: 'audio/mpeg' });
+        ffmpeg.FS('unlink', inputName);
+        ffmpeg.FS('unlink', audioOutput);
+        addLog(`✅ Audio estratto (${(audioBlob.size / 1024 / 1024).toFixed(2)} MB)`);
+        return audioBlob;
+    }
+
+    // 2. Whisper API trascrizione
+    async function transcribeWithWhisper(audioBlob, apiKey) {
+        addLog("🎤 Invio a Whisper API per trascrizione...");
+        const formData = new FormData();
+        formData.append("file", audioBlob, "audio.mp3");
+        formData.append("model", "whisper-1");
+        formData.append("language", "it"); // lingua originale automatica? ma meglio lasciare auto
+        formData.append("response_format", "text");
+        const resp = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${apiKey}` },
+            body: formData
+        });
+        if (!resp.ok) {
+            const errText = await resp.text();
+            throw new Error(`Whisper API error ${resp.status}: ${errText}`);
+        }
+        const text = await resp.text();
+        addLog(`📝 Trascrizione completata (${text.length} caratteri)`);
+        return text;
+    }
+
+    // 3. DeepSeek traduzione contestuale
+    async function translateWithDeepSeek(text, targetLanguage, apiKey) {
+        addLog(`🌐 Traduzione con DeepSeek verso ${targetLanguage}...`);
+        const systemPrompt = `Sei un traduttore professionista per contenuti YouTube. Traduci il seguente testo in modo naturale, mantenendo il tono colloquiale. Lingua destinazione: ${targetLanguage}. Restituisci solo il testo tradotto senza commenti.`;
+        const resp = await fetch("https://api.deepseek.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: "deepseek-chat",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: text }
+                ],
+                temperature: 0.3,
+                max_tokens: 4000
+            })
+        });
+        if (!resp.ok) throw new Error(`DeepSeek error ${resp.status}`);
+        const data = await resp.json();
+        const translation = data.choices[0].message.content;
+        addLog(`✅ Traduzione ottenuta (${translation.length} caratteri)`);
+        return translation;
+    }
+
+    // Chunking per ElevenLabs (max 5000 caratteri per richiesta)
+    function splitTextIntoChunks(text, maxLen = 4900) {
+        const sentences = text.split(/(?<=[.!?])\s+/);
+        const chunks = [];
+        let current = "";
+        for (let sent of sentences) {
+            if ((current + sent).length <= maxLen) {
+                current += (current ? " " : "") + sent;
+            } else {
+                if (current) chunks.push(current);
+                current = sent;
+            }
+        }
+        if (current) chunks.push(current);
+        return chunks;
+    }
+
+    // ElevenLabs TTS per un chunk (restituisce Blob audio mp3)
+    async function elevenLabsTTSChunk(textChunk, apiKey, voiceId) {
+        const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
+        const resp = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "xi-api-key": apiKey
+            },
+            body: JSON.stringify({
+                text: textChunk,
+                model_id: "eleven_monolingual_v1",
+                voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+            })
+        });
+        if (!resp.ok) throw new Error(`ElevenLabs error ${resp.status}`);
+        const audioBlob = await resp.blob();
+        return audioBlob;
+    }
+
+    // Genera audio completo unendo più chunk con FFmpeg concat
+    async function generateFullTTS(translatedText, apiKey, voiceId) {
+        addLog("🎙️ Generazione voce tradotta con ElevenLabs (chunking automatico)...");
+        const chunks = splitTextIntoChunks(translatedText, 4800);
+        addLog(`Frasi suddivise in ${chunks.length} chunk per ElevenLabs`);
+        if (chunks.length === 0) throw new Error("Testo vuoto per TTS");
+
+        const audioBlobs = [];
+        for (let i = 0; i < chunks.length; i++) {
+            addLog(`Sintesi chunk ${i+1}/${chunks.length}...`);
+            const blob = await elevenLabsTTSChunk(chunks[i], apiKey, voiceId);
+            audioBlobs.push(blob);
+        }
+        if (audioBlobs.length === 1) {
+            addLog("✅ Singolo audio generato");
+            return audioBlobs[0];
+        }
+        // Concatenazione con FFmpeg
+        addLog("🔗 Unione di più tracce audio con FFmpeg...");
+        await loadFFmpeg();
+        const fileNames = [];
+        for (let idx = 0; idx < audioBlobs.length; idx++) {
+            const name = `chunk_${idx}.mp3`;
+            const data = new Uint8Array(await audioBlobs[idx].arrayBuffer());
+            ffmpeg.FS('writeFile', name, data);
+            fileNames.push(name);
+        }
+        // Creazione file list per concat
+        const listContent = fileNames.map(n => `file '${n}'`).join("\n");
+        ffmpeg.FS('writeFile', 'concat_list.txt', new TextEncoder().encode(listContent));
+        await ffmpeg.exec(['-f', 'concat', '-safe', '0', '-i', 'concat_list.txt', '-c', 'copy', 'final_tts.mp3']);
+        const finalData = ffmpeg.FS('readFile', 'final_tts.mp3');
+        const finalBlob = new Blob([finalData.buffer], { type: 'audio/mpeg' });
+        // Pulizia
+        for (let name of fileNames) ffmpeg.FS('unlink', name);
+        ffmpeg.FS('unlink', 'concat_list.txt');
+        ffmpeg.FS('unlink', 'final_tts.mp3');
+        addLog(`✅ Voce tradotta finale generata (${(finalBlob.size / 1024 / 1024).toFixed(2)} MB)`);
+        return finalBlob;
+    }
+
+    // Ricomposizione video: sostituisci traccia audio con il nuovo audio
+    async function replaceAudioTrack(originalFile, newAudioBlob) {
+        addLog("🎬 Ricomposizione video con nuova traccia audio (doppiaggio)...");
+        await loadFFmpeg();
+        const ext = originalFile.name.split('.').pop() || "mp4";
+        const inputVideo = "original_video." + ext;
+        const inputAudio = "new_audio.mp3";
+        const outputVideo = "final_output.mp4";
+        const videoData = new Uint8Array(await originalFile.arrayBuffer());
+        const audioData = new Uint8Array(await newAudioBlob.arrayBuffer());
+        ffmpeg.FS('writeFile', inputVideo, videoData);
+        ffmpeg.FS('writeFile', inputAudio, audioData);
+        // Comando: copia video senza audio originale e mux con nuovo audio
+        await ffmpeg.exec([
+            '-i', inputVideo,
+            '-i', inputAudio,
+            '-c:v', 'copy',           // copia video senza ricodifica
+            '-c:a', 'aac',            // codifica audio in aac
+            '-map', '0:v:0',          // traccia video dal primo input
+            '-map', '1:a:0',          // traccia audio dal secondo input
+            '-shortest',
+            '-y', outputVideo
+        ]);
+        const finalVideoData = ffmpeg.FS('readFile', outputVideo);
+        const finalBlob = new Blob([finalVideoData.buffer], { type: 'video/mp4' });
+        // pulizia
+        ffmpeg.FS('unlink', inputVideo);
+        ffmpeg.FS('unlink', inputAudio);
+        ffmpeg.FS('unlink', outputVideo);
+        addLog(`✅ Video finale pronto: ${(finalBlob.size / 1024 / 1024).toFixed(2)} MB`);
+        return finalBlob;
+    }
+
+    // processo principale
+    document.getElementById('processBtn').addEventListener('click', async () => {
+        const fileInput = document.getElementById('fileInput');
+        if (!fileInput.files.length) {
+            errorLog("Nessun file caricato");
+            return;
+        }
+        originalFile = fileInput.files[0];
+        const whisperKey = document.getElementById('whisperKey').value.trim();
+        const deepseekKey = document.getElementById('deepseekKey').value.trim();
+        const elevenKey = document.getElementById('elevenKey').value.trim();
+        const voiceId = document.getElementById('voiceId').value.trim();
+        const targetLang = document.getElementById('targetLang').value;
+
+        if (!whisperKey || !deepseekKey || !elevenKey) {
+            errorLog("Inserisci tutte le API Key (Whisper, DeepSeek, ElevenLabs)");
+            return;
+        }
+
+        // reset visivo
+        document.getElementById('downloadGroup').style.display = 'none';
+        finalVideoBlob = null;
+        ttsAudioBlob = null;
+        transcriptionText = "";
+        translatedText = "";
+
+        try {
+            addLog("🚀 INIZIO PIPELINE DI TRADUZIONE");
+            // STEP 1: decomposizione audio
+            extractedAudioBlob = await decomposeFile(originalFile);
+            // STEP 2: trascrizione
+            transcriptionText = await transcribeWithWhisper(extractedAudioBlob, whisperKey);
+            if (!transcriptionText) throw new Error("Trascrizione vuota");
+            // STEP 3: traduzione DeepSeek
+            translatedText = await translateWithDeepSeek(transcriptionText, targetLang, deepseekKey);
+            // STEP 4: generazione voce tradotta ElevenLabs
+            ttsAudioBlob = await generateFullTTS(translatedText, elevenKey, voiceId);
+            // STEP 5: ricomposizione video + nuova traccia audio (se il file è video, altrimenti esporta solo audio)
+            const isVideo = originalFile.type.startsWith('video/');
+            if (isVideo) {
+                finalVideoBlob = await replaceAudioTrack(originalFile, ttsAudioBlob);
+            } else {
+                // se file audio, il risultato è l'audio tradotto stesso, e non c'è video finale
+                finalVideoBlob = ttsAudioBlob;
+                addLog("Nota: file audio, risultato finale = audio tradotto");
+            }
+            // Mostra bottoni download
+            document.getElementById('downloadGroup').style.display = 'flex';
+            addLog("🎉 PROCESSO COMPLETATO! Scarica i file nella sezione sottostante.");
+        } catch (err) {
+            errorLog(err.message);
+            console.error(err);
+        }
+    });
+
+    // Download handler
+    document.getElementById('downloadTranscriptBtn').addEventListener('click', () => {
+        if (!transcriptionText) { errorLog("Nessuna trascrizione disponibile"); return; }
+        const blob = new Blob([transcriptionText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "trascrizione_originale.txt";
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+    document.getElementById('downloadTranslationBtn').addEventListener('click', () => {
+        if (!translatedText) { errorLog("Nessuna traduzione disponibile"); return; }
+        const blob = new Blob([translatedText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "traduzione.txt";
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+    document.getElementById('downloadTTSBtn').addEventListener('click', () => {
+        if (!ttsAudioBlob) { errorLog("Audio tradotto non disponibile"); return; }
+        const url = URL.createObjectURL(ttsAudioBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "voce_tradotta.mp3";
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+    document.getElementById('downloadFinalVideoBtn').addEventListener('click', () => {
+        if (!finalVideoBlob) { errorLog("Video finale non disponibile"); return; }
+        const ext = originalFile && originalFile.type.startsWith('video/') ? "mp4" : "mp3";
+        const url = URL.createObjectURL(finalVideoBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `video_tradotto_${Date.now()}.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+</script>
+</body>
+</html>

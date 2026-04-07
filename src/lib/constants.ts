@@ -23,3 +23,10 @@ export const ACCEPTED_FILE_TYPES = {
 };
 
 export const MAX_FILE_SIZE_MB = 500;
+
+// ElevenLabs defaults
+export const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel (multilingual)
+export const ELEVENLABS_CHUNK_SIZE = 4800; // Max chars per ElevenLabs API request
+
+// Magic link token expiry (15 minutes in milliseconds)
+export const MAGIC_LINK_EXPIRY_MS = 15 * 60 * 1000;

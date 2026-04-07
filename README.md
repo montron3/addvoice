@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎬 AddVoice — AI Video & Audio Translation
+
+Translate your YouTube videos and podcasts into any language with AI-powered transcription, translation, and voice synthesis.
+
+## Features
+
+- **Dual Mode**: Use your own API keys (free) or our platform API ($0.99/min)
+- **16+ Languages**: English, Spanish, French, German, Italian, Portuguese, Japanese, Korean, Chinese, Arabic, Hindi, Russian, Turkish, Polish, Dutch, Swedish
+- **Video & Audio**: Upload video → get translated video + audio track. Upload audio → get translated audio track
+- **Magic Link Auth**: No passwords, just email
+- **Pay-Per-Use**: No subscriptions. Buy minutes with Stripe, use whenever you want
+- **Client-Side Processing**: FFmpeg.wasm handles audio extraction/recomposition in your browser
+- **Privacy First**: BYO API keys never leave your browser
+
+## Tech Stack
+
+- **Frontend**: Next.js 16 + TypeScript + Tailwind CSS
+- **Backend**: Next.js API Routes
+- **Database**: Prisma + SQLite (easy to migrate to PostgreSQL)
+- **Auth**: Magic Link (JWT + httpOnly cookies)
+- **Payments**: Stripe Checkout
+- **AI Pipeline**: OpenAI Whisper → GPT-4o-mini/DeepSeek → ElevenLabs
+- **Audio**: FFmpeg.wasm (client-side)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Setup
 
 ```bash
+# Install dependencies
+npm install
+
+# Copy environment variables
+cp .env.example .env
+
+# Edit .env with your configuration
+# At minimum, set JWT_SECRET for production
+
+# Generate Prisma client and create database
+npx prisma generate
+npx prisma db push
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+See `.env.example` for all available configuration options:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Database**: SQLite by default, configurable via `DATABASE_URL`
+- **Auth**: `JWT_SECRET` (required in production), `MAGIC_LINK_BASE_URL`
+- **Email**: SMTP settings for magic link emails
+- **Platform API Keys**: OpenAI, DeepSeek, ElevenLabs (for pay-per-use mode)
+- **Stripe**: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PUBLISHABLE_KEY`
+- **Pricing**: `PRICE_PER_MINUTE_CENTS` (default: 99 = $0.99/min)
 
-## Learn More
+### Deploy to Vercel
 
-To learn more about Next.js, take a look at the following resources:
+1. Push to GitHub
+2. Connect to Vercel
+3. Set environment variables in Vercel dashboard
+4. For production, switch to PostgreSQL (`DATABASE_URL`)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API Routes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/api/auth/magic-link` | POST | Send magic link email |
+| `/api/auth/verify` | GET | Verify magic link token |
+| `/api/auth/me` | GET | Get current user |
+| `/api/auth/logout` | POST | Logout |
+| `/api/translate/transcribe` | POST | Transcribe audio (Whisper) |
+| `/api/translate/translate` | POST | Translate text (GPT/DeepSeek) |
+| `/api/translate/tts` | POST | Text-to-speech (ElevenLabs) |
+| `/api/stripe/create-checkout` | POST | Create Stripe checkout session |
+| `/api/stripe/webhook` | POST | Stripe webhook handler |
+| `/api/usage/track` | POST | Track usage and deduct credits |
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { SUPPORTED_LANGUAGES } from "@/lib/constants";
+import { SUPPORTED_LANGUAGES, DEFAULT_VOICE_ID, ELEVENLABS_CHUNK_SIZE } from "@/lib/constants";
 
 interface TranslationToolProps {
   user: { email: string; credits: number } | null;
@@ -30,7 +30,7 @@ export default function TranslationTool({ user, onLoginClick }: TranslationToolP
   const [whisperKey, setWhisperKey] = useState("");
   const [deepseekKey, setDeepseekKey] = useState("");
   const [elevenKey, setElevenKey] = useState("");
-  const [voiceId, setVoiceId] = useState("21m00Tcm4TlvDq8ikWAM");
+  const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID);
   const [translationProvider, setTranslationProvider] = useState<"deepseek" | "openai">("openai");
 
   // Results
@@ -203,7 +203,7 @@ export default function TranslationTool({ user, onLoginClick }: TranslationToolP
 
   // TTS with chunking
   const generateTTS = async (text: string): Promise<Blob> => {
-    const chunks = splitTextIntoChunks(text, 4800);
+    const chunks = splitTextIntoChunks(text, ELEVENLABS_CHUNK_SIZE);
     addLog(`Split into ${chunks.length} chunk(s) for voice synthesis`);
 
     const audioBlobs: Blob[] = [];

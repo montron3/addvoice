@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 
+// ElevenLabs voice IDs are alphanumeric strings
+const VOICE_ID_REGEX = /^[a-zA-Z0-9]{10,30}$/;
+const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel
+
 export async function POST(req: NextRequest) {
   try {
     const { text, voiceId, apiKey: userApiKey } = await req.json();
@@ -9,8 +13,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
+    const voice = voiceId || DEFAULT_VOICE_ID;
+    
+    // Validate voice ID to prevent SSRF
+    if (!VOICE_ID_REGEX.test(voice)) {
+      return NextResponse.json({ error: "Invalid voice ID format" }, { status: 400 });
+    }
+
     let apiKey = userApiKey;
-    const voice = voiceId || "21m00Tcm4TlvDq8ikWAM"; // Rachel default
 
     if (!apiKey) {
       const user = await getCurrentUser();
